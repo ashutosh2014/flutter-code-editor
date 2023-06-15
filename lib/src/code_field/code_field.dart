@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:linked_scroll_controller/linked_scroll_controller.dart';
@@ -183,6 +184,7 @@ class _CodeFieldState extends State<CodeField> {
   String longestLine = '';
   late Size windowSize;
   late TextStyle textStyle;
+  bool enterText = false;
 
   @override
   void initState() {
@@ -255,7 +257,10 @@ class _CodeFieldState extends State<CodeField> {
 
   // Wrap the codeField in a horizontal scrollView
   Widget _wrapInScrollView(
-      Widget codeField, TextStyle textStyle, double minWidth,) {
+      Widget codeField,
+      TextStyle textStyle,
+      double minWidth,
+      ) {
     final intrinsic = IntrinsicWidth(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -313,7 +318,8 @@ class _CodeFieldState extends State<CodeField> {
     final lineNumberColor = widget.lineNumberStyle.textStyle?.color ??
         textStyle.color?.withOpacity(.5);
 
-    final lineNumberTextStyle = (widget.lineNumberStyle.textStyle ?? textStyle).copyWith(
+    final lineNumberTextStyle =
+    (widget.lineNumberStyle.textStyle ?? textStyle).copyWith(
       color: lineNumberColor,
       fontFamily: textStyle.fontFamily,
       fontSize: lineNumberSize,
@@ -331,7 +337,7 @@ class _CodeFieldState extends State<CodeField> {
         style: lineNumberStyle,
         fixedColumnWidth: widget.fixedColumnWidth,
       );
-      if(widget.numbersTabDecoration != null) {
+      if (widget.numbersTabDecoration != null) {
         numberCol = SizedBox(
             height: double.maxFinite,
             child: DecoratedBox(
@@ -342,6 +348,66 @@ class _CodeFieldState extends State<CodeField> {
     }
 
     final codeField = TextField(
+      contextMenuBuilder: (
+          BuildContext context,
+          EditableTextState editableTextState,
+          ) {
+        return AdaptiveTextSelectionMainToolbar(
+          anchors: editableTextState.contextMenuAnchors,
+          children: editableTextState.contextMenuButtonItems
+              .map<Widget>((ContextMenuButtonItem buttonItem) {
+            // buttonItem.type.
+            return SizedBox(
+              height: 24,
+              width: 100,
+              child: TextButton(
+                onPressed: buttonItem.onPressed,
+                style: ButtonStyle(
+                  backgroundColor: const MaterialStatePropertyAll(Colors.transparent),
+                  padding: MaterialStatePropertyAll(EdgeInsets.only(
+                    right: CupertinoTextSelectionToolbarButton.getButtonLabel(
+                        context, buttonItem) ==
+                        'Cut'
+                        ? 60
+                        : CupertinoTextSelectionToolbarButton.getButtonLabel(
+                        context, buttonItem) ==
+                        'Paste'
+                        ? 47
+                        : 50,),
+                  ),
+                  overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+                ),
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    return MouseRegion(
+                      onEnter: (_) {
+                        setState(() {
+                          enterText = true;
+                        });
+                      },
+                      onExit: (_) {
+                        setState(() {
+                          enterText = false;
+                        });
+                      },
+                      cursor: SystemMouseCursors.click,
+                      child: Text(
+                        CupertinoTextSelectionToolbarButton.getButtonLabel(
+                            context, buttonItem),
+                        style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            color: enterText ? Colors.white70 : Colors.white),
+                      ),
+                    );
+                  },
+                  // ),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
       focusNode: _focusNode,
       scrollPadding: widget.padding,
       style: textStyle,
@@ -352,7 +418,8 @@ class _CodeFieldState extends State<CodeField> {
       scrollController: _codeScroll,
       decoration: InputDecoration(
         isCollapsed: true,
-        contentPadding: widget.codeFieldPadding ?? const EdgeInsets.symmetric(vertical: 16),
+        contentPadding:
+        widget.codeFieldPadding ?? const EdgeInsets.symmetric(vertical: 16),
         disabledBorder: InputBorder.none,
         border: InputBorder.none,
         focusedBorder: InputBorder.none,
@@ -363,12 +430,13 @@ class _CodeFieldState extends State<CodeField> {
       enabled: widget.enabled,
       onChanged: widget.onChanged,
       readOnly: widget.readOnly,
+      cursorHeight: 19,
     );
 
     final editingField = Theme(
       data: Theme.of(context).copyWith(
-        textSelectionTheme: widget.textSelectionTheme,
-      ),
+          textSelectionTheme: widget.textSelectionTheme,
+          canvasColor: Colors.green),
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           // Control horizontal scrolling
@@ -393,16 +461,16 @@ class _CodeFieldState extends State<CodeField> {
               child: Stack(
                 children: [
                   editingField,
-                  if (widget.controller.popupController.isPopupShown)
-                    Popup(
-                      normalOffset: _normalPopupOffset,
-                      flippedOffset: _flippedPopupOffset,
-                      controller: widget.controller.popupController,
-                      editingWindowSize: windowSize,
-                      style: textStyle,
-                      backgroundColor: backgroundCol,
-                      parentFocusNode: _focusNode!,
-                    ),
+                  // if (widget.controller.popupController.isPopupShown)
+                  //   Popup(
+                  //     normalOffset: _normalPopupOffset,
+                  //     flippedOffset: _flippedPopupOffset,
+                  //     controller: widget.controller.popupController,
+                  //     editingWindowSize: windowSize,
+                  //     style: textStyle,
+                  //     backgroundColor: backgroundCol,
+                  //     parentFocusNode: _focusNode!,
+                  //   ),
                 ],
               ),
             ),
@@ -466,6 +534,207 @@ class _CodeFieldState extends State<CodeField> {
           widget.padding.top -
           _codeScroll!.offset,
       0,
+    );
+  }
+}
+
+class AdaptiveTextSelectionMainToolbar extends StatelessWidget {
+  const AdaptiveTextSelectionMainToolbar({
+    super.key,
+    required this.children,
+    required this.anchors,
+  }) : buttonItems = null;
+
+  /// {@template flutter.material.AdaptiveTextSelectionToolbar.buttonItems}
+  /// The [ContextMenuButtonItem]s that will be turned into the correct button
+  /// widgets for the current platform.
+  /// {@endtemplate}
+  final List<ContextMenuButtonItem>? buttonItems;
+
+  /// The children of the toolbar, typically buttons.
+  final List<Widget>? children;
+
+  /// {@template flutter.material.AdaptiveTextSelectionToolbar.anchors}
+  /// The location on which to anchor the menu.
+  /// {@endtemplate}
+  final TextSelectionToolbarAnchors anchors;
+
+  /// Returns the default button label String for the button of the given
+  /// [ContextMenuButtonType] on any platform.
+  static String getButtonLabel(
+      BuildContext context, ContextMenuButtonItem buttonItem) {
+    if (buttonItem.label != null) {
+      return buttonItem.label!;
+    }
+
+    switch (Theme.of(context).platform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return CupertinoTextSelectionToolbarButton.getButtonLabel(
+          context,
+          buttonItem,
+        );
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        assert(debugCheckHasMaterialLocalizations(context));
+        final MaterialLocalizations localizations =
+        MaterialLocalizations.of(context);
+        switch (buttonItem.type) {
+          case ContextMenuButtonType.cut:
+            return localizations.cutButtonLabel;
+          case ContextMenuButtonType.copy:
+            return localizations.copyButtonLabel;
+          case ContextMenuButtonType.paste:
+            return localizations.pasteButtonLabel;
+          case ContextMenuButtonType.selectAll:
+            return localizations.selectAllButtonLabel;
+          case ContextMenuButtonType.delete:
+            return localizations.deleteButtonTooltip.toUpperCase();
+          case ContextMenuButtonType.custom:
+            return '';
+        }
+    }
+  }
+
+  static Iterable<Widget> getAdaptiveButtons(
+      BuildContext context, List<ContextMenuButtonItem> buttonItems) {
+    switch (Theme.of(context).platform) {
+      case TargetPlatform.iOS:
+        return buttonItems.map((ContextMenuButtonItem buttonItem) {
+          return CupertinoTextSelectionToolbarButton.text(
+            onPressed: buttonItem.onPressed,
+            text: getButtonLabel(context, buttonItem),
+          );
+        });
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.android:
+        final List<Widget> buttons = <Widget>[];
+        for (int i = 0; i < buttonItems.length; i++) {
+          final ContextMenuButtonItem buttonItem = buttonItems[i];
+          buttons.add(TextSelectionToolbarTextButton(
+            padding: TextSelectionToolbarTextButton.getPadding(
+                i, buttonItems.length),
+            onPressed: buttonItem.onPressed,
+            child: Text(getButtonLabel(context, buttonItem)),
+          ));
+        }
+        return buttons;
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        return buttonItems.map((ContextMenuButtonItem buttonItem) {
+          return DesktopTextSelectionToolbarButton.text(
+            context: context,
+            onPressed: buttonItem.onPressed,
+            text: getButtonLabel(context, buttonItem),
+          );
+        });
+      case TargetPlatform.macOS:
+        return buttonItems.map((ContextMenuButtonItem buttonItem) {
+          return CupertinoDesktopTextSelectionToolbarButton.text(
+            context: context,
+            onPressed: buttonItem.onPressed,
+            text: getButtonLabel(context, buttonItem),
+          );
+        });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If there aren't any buttons to build, build an empty toolbar.
+    if ((children != null && children!.isEmpty) ||
+        (buttonItems != null && buttonItems!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    final List<Widget> resultChildren = children != null
+        ? children!
+        : getAdaptiveButtons(context, buttonItems!).toList();
+
+    return CupertinoDesktopMainTextSelectionToolbar(
+      anchor: anchors.primaryAnchor,
+      children: resultChildren,
+    );
+  }
+}
+
+const double _kToolbarScreenPadding = 8.0;
+
+const double _kToolbarWidth = 100.0;
+const Radius _kToolbarBorderRadius = Radius.circular(8.0);
+const EdgeInsets _kToolbarPadding = EdgeInsets.symmetric(
+  vertical: 3.0,
+);
+
+const CupertinoDynamicColor _kToolbarBorderColor =
+CupertinoDynamicColor.withBrightness(
+  color: Colors.transparent,
+  darkColor: Colors.transparent,
+);
+const CupertinoDynamicColor _kToolbarBackgroundColor =
+CupertinoDynamicColor.withBrightness(
+  color: Color(0xFF1A1B23),
+  darkColor: Colors.transparent,
+);
+
+class CupertinoDesktopMainTextSelectionToolbar extends StatelessWidget {
+  /// Creates a const instance of CupertinoTextSelectionToolbar.
+  const CupertinoDesktopMainTextSelectionToolbar({
+    super.key,
+    required this.anchor,
+    required this.children,
+  }) : assert(children.length > 0);
+
+  final Offset anchor;
+
+  final List<Widget> children;
+
+  static Widget _defaultToolbarBuilder(BuildContext context, Widget child) {
+    return Container(
+      width: _kToolbarWidth,
+      decoration: BoxDecoration(
+        color: _kToolbarBackgroundColor.resolveFrom(context),
+        border: Border.all(
+          color: _kToolbarBorderColor.resolveFrom(context),
+        ),
+        borderRadius: const BorderRadius.all(_kToolbarBorderRadius),
+      ),
+      child: Padding(
+        padding: _kToolbarPadding,
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    assert(debugCheckHasMediaQuery(context));
+
+    final double paddingAbove =
+        MediaQuery.paddingOf(context).top + _kToolbarScreenPadding;
+    final Offset localAdjustment = Offset(_kToolbarScreenPadding, paddingAbove);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        _kToolbarScreenPadding,
+        paddingAbove,
+        _kToolbarScreenPadding,
+        _kToolbarScreenPadding,
+      ),
+      child: CustomSingleChildLayout(
+        delegate: DesktopTextSelectionToolbarLayoutDelegate(
+          anchor: anchor - localAdjustment,
+        ),
+        child: _defaultToolbarBuilder(
+          context,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: children,
+          ),
+        ),
+      ),
     );
   }
 }
