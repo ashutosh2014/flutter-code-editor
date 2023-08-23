@@ -596,6 +596,7 @@ class AdaptiveTextSelectionMainToolbar extends StatelessWidget {
             return '';
         }
     }
+    return '';
   }
 
   static Iterable<Widget> getAdaptiveButtons(
@@ -633,7 +634,7 @@ class AdaptiveTextSelectionMainToolbar extends StatelessWidget {
       case TargetPlatform.macOS:
         return buttonItems.map((ContextMenuButtonItem buttonItem) {
           return CupertinoDesktopTextSelectionToolbarButton.text(
-            context: context,
+            // context: context,
             onPressed: buttonItem.onPressed,
             text: getButtonLabel(context, buttonItem),
           );
