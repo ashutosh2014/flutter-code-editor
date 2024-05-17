@@ -10,7 +10,6 @@ import '../code_theme/code_theme.dart';
 import '../gutter/gutter.dart';
 import '../line_numbers/line_number_style.dart';
 import '../sizes.dart';
-import '../wip/autocomplete/popup.dart';
 import 'actions/comment_uncomment.dart';
 import 'actions/indent.dart';
 import 'actions/outdent.dart';
@@ -257,10 +256,10 @@ class _CodeFieldState extends State<CodeField> {
 
   // Wrap the codeField in a horizontal scrollView
   Widget _wrapInScrollView(
-      Widget codeField,
-      TextStyle textStyle,
-      double minWidth,
-      ) {
+    Widget codeField,
+    TextStyle textStyle,
+    double minWidth,
+  ) {
     final intrinsic = IntrinsicWidth(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -276,7 +275,7 @@ class _CodeFieldState extends State<CodeField> {
               child: Text(longestLine, style: textStyle),
             ), // Add extra padding
           ),
-          widget.expands ? Expanded(child: codeField) : codeField,
+          if (widget.expands) Expanded(child: codeField) else codeField,
         ],
       ),
     );
@@ -309,7 +308,7 @@ class _CodeFieldState extends State<CodeField> {
 
     final defaultTextStyle = TextStyle(
       color: styles?[rootKey]?.color ?? defaultText,
-      fontSize: themeData.textTheme.subtitle1?.fontSize,
+      fontSize: themeData.textTheme.titleMedium?.fontSize,
     );
 
     textStyle = defaultTextStyle.merge(widget.textStyle);
@@ -319,7 +318,7 @@ class _CodeFieldState extends State<CodeField> {
         textStyle.color?.withOpacity(.5);
 
     final lineNumberTextStyle =
-    (widget.lineNumberStyle.textStyle ?? textStyle).copyWith(
+        (widget.lineNumberStyle.textStyle ?? textStyle).copyWith(
       color: lineNumberColor,
       fontFamily: textStyle.fontFamily,
       fontSize: lineNumberSize,
@@ -349,9 +348,9 @@ class _CodeFieldState extends State<CodeField> {
 
     final codeField = TextField(
       contextMenuBuilder: (
-          BuildContext context,
-          EditableTextState editableTextState,
-          ) {
+        BuildContext context,
+        EditableTextState editableTextState,
+      ) {
         return AdaptiveTextSelectionMainToolbar(
           anchors: editableTextState.contextMenuAnchors,
           children: editableTextState.contextMenuButtonItems
@@ -363,19 +362,27 @@ class _CodeFieldState extends State<CodeField> {
               child: TextButton(
                 onPressed: buttonItem.onPressed,
                 style: ButtonStyle(
-                  backgroundColor: const MaterialStatePropertyAll(Colors.transparent),
-                  padding: MaterialStatePropertyAll(EdgeInsets.only(
-                    right: CupertinoTextSelectionToolbarButton.getButtonLabel(
-                        context, buttonItem) ==
-                        'Cut'
-                        ? 60
-                        : CupertinoTextSelectionToolbarButton.getButtonLabel(
-                        context, buttonItem) ==
-                        'Paste'
-                        ? 47
-                        : 50,),
+                  backgroundColor:
+                      const MaterialStatePropertyAll(Colors.transparent),
+                  padding: MaterialStatePropertyAll(
+                    EdgeInsets.only(
+                      right: CupertinoTextSelectionToolbarButton.getButtonLabel(
+                                context,
+                                buttonItem,
+                              ) ==
+                              'Cut'
+                          ? 60
+                          : CupertinoTextSelectionToolbarButton.getButtonLabel(
+                                    context,
+                                    buttonItem,
+                                  ) ==
+                                  'Paste'
+                              ? 47
+                              : 50,
+                    ),
                   ),
-                  overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+                  overlayColor:
+                      const MaterialStatePropertyAll(Colors.transparent),
                 ),
                 child: StatefulBuilder(
                   builder: (context, setState) {
@@ -419,7 +426,7 @@ class _CodeFieldState extends State<CodeField> {
       decoration: InputDecoration(
         isCollapsed: true,
         contentPadding:
-        widget.codeFieldPadding ?? const EdgeInsets.symmetric(vertical: 16),
+            widget.codeFieldPadding ?? const EdgeInsets.symmetric(vertical: 16),
         disabledBorder: InputBorder.none,
         border: InputBorder.none,
         focusedBorder: InputBorder.none,
@@ -580,7 +587,7 @@ class AdaptiveTextSelectionMainToolbar extends StatelessWidget {
       case TargetPlatform.windows:
         assert(debugCheckHasMaterialLocalizations(context));
         final MaterialLocalizations localizations =
-        MaterialLocalizations.of(context);
+            MaterialLocalizations.of(context);
         switch (buttonItem.type) {
           case ContextMenuButtonType.cut:
             return localizations.cutButtonLabel;
@@ -670,12 +677,12 @@ const EdgeInsets _kToolbarPadding = EdgeInsets.symmetric(
 );
 
 const CupertinoDynamicColor _kToolbarBorderColor =
-CupertinoDynamicColor.withBrightness(
+    CupertinoDynamicColor.withBrightness(
   color: Colors.transparent,
   darkColor: Colors.transparent,
 );
 const CupertinoDynamicColor _kToolbarBackgroundColor =
-CupertinoDynamicColor.withBrightness(
+    CupertinoDynamicColor.withBrightness(
   color: Color(0xFF1A1B23),
   darkColor: Colors.transparent,
 );
